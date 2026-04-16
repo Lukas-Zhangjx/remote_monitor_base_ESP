@@ -10,8 +10,8 @@
 
 static const char *TAG = "main";
 
-/* DHT11 DATA 引脚，根据实际接线修改 */
-#define DHT11_GPIO  GPIO_NUM_4
+/* DHT11 DATA 引脚，接 GPIO23 */
+#define DHT11_GPIO  GPIO_NUM_23
 
 /**
  * @brief  主任务：WiFi 连接完成后启动 HTTP 服务器，进入主循环
