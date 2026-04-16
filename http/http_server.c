@@ -6,20 +6,22 @@
  * 静态页面（index.html）通过 CMakeLists EMBED_FILES 嵌入固件，
  * 运行时直接从 flash 读取，无需文件系统。
  *
- * 传感器数据与继电器控制目前使用桩函数占位，
- * 待对应驱动模块完成后替换。
+ * 传感器数据由 DHT11 驱动读取，继电器控制桩函数待 GPIO 驱动完成后替换。
  */
 
 #include <string.h>
+#include "esp_err.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "http_server.h"
+#include "dht11.h"
 
 static const char *TAG = "http_server";
 
 /* ----------------------------------------------------------------
  * 嵌入的静态资源（由 CMakeLists EMBED_FILES 指令生成）
- * _start 指向文件内容起始，_end 指向末尾（不含 \0）
+ * 符号名规则：ESP-IDF 只取文件名部分（不含目录），将非字母数字字符替换为 _
+ * web/index.html -> 取 index.html -> _binary_index_html_start
  * ---------------------------------------------------------------- */
 extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[]   asm("_binary_index_html_end");
@@ -29,32 +31,45 @@ static httpd_handle_t s_server = NULL;
 
 
 /* ================================================================
- *  桩函数区域 — 待传感器/继电器模块完成后替换
+ *  传感器数据缓存 — 由 dht11_read 更新，HTTP handler 直接读取
+ *  避免每次 HTTP 请求都触发一次 DHT11 读取（DHT11 采样周期 >= 2s）
+ * ================================================================ */
+
+/* 缓存最近一次成功读取的温湿度数据 */
+static dht11_data_t s_sensor_cache = {
+    .temperature = 0.0f,
+    .humidity    = 0.0f,
+};
+
+/**
+ * @brief  更新传感器缓存，应在 main_task 中周期性调用（建议间隔 >= 2s）
+ *
+ * 读取失败时保留上次有效数据，不清空缓存。
+ */
+void http_server_update_sensor(void)
+{
+    dht11_data_t data;
+    esp_err_t ret = dht11_read(&data);
+    if (ret == ESP_OK) {
+        s_sensor_cache = data; /* 更新缓存 */
+    } else {
+        ESP_LOGW("http_server", "dht11_read failed: %d, using cached data", ret);
+    }
+}
+
+/* ================================================================
+ *  继电器桩函数 — 待 GPIO 驱动完成后替换
  * ================================================================ */
 
 /**
- * @brief  获取温度（桩）
+ * @brief  设置继电器状态（桩）
  *
- * TODO: 替换为实际传感器驱动读取逻辑（如 DHT11、AHT20 等）
+ * TODO: 替换为 GPIO 驱动实现，控制对应继电器引脚电平
  *
- * @return 模拟温度值（°C）
+ * @param relay_id  继电器编号（当前只有 1）
+ * @param state     1 = 吸合（开启），0 = 断开（关闭）
+ * @return          实际设置后的状态
  */
-static float stub_get_temperature(void)
-{
-    return 25.0f; /* TODO: 读取真实传感器 */
-}
-
-/**
- * @brief  获取湿度（桩）
- *
- * TODO: 替换为实际传感器驱动读取逻辑
- *
- * @return 模拟湿度值（%RH）
- */
-static float stub_get_humidity(void)
-{
-    return 60.0f; /* TODO: 读取真实传感器 */
-}
 
 /**
  * @brief  设置继电器状态（桩）
@@ -104,13 +119,12 @@ static esp_err_t handler_get_index(httpd_req_t *req)
 static esp_err_t handler_get_sensors(httpd_req_t *req)
 {
     char buf[64];
-    float temp = stub_get_temperature();
-    float humi = stub_get_humidity();
 
-    /* 手动格式化 JSON，避免引入 cJSON 依赖 */
+    /* 直接读取缓存，不在 HTTP handler 里阻塞等待 DHT11 采样 */
     snprintf(buf, sizeof(buf),
              "{\"temperature\":%.1f,\"humidity\":%.1f}",
-             temp, humi);
+             s_sensor_cache.temperature,
+             s_sensor_cache.humidity);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, buf);

@@ -10,7 +10,7 @@
  *
  * 依赖：
  *   - esp_http_server
- *   - sensor 模块（桩，待实现）
+ *   - dht11 驱动（sensor/dht11.h）
  *   - relay  模块（桩，待实现）
  */
 
@@ -33,5 +33,13 @@ esp_err_t http_server_start(void);
  * @brief  停止 HTTP 服务器并释放资源
  */
 void http_server_stop(void);
+
+/**
+ * @brief  读取 DHT11 并更新传感器缓存
+ *
+ * 应在 main_task 中每 2 秒以上调用一次（DHT11 采样周期限制）。
+ * HTTP handler 直接读缓存，不阻塞请求处理。
+ */
+void http_server_update_sensor(void);
 
 #endif /* HTTP_SERVER_H */

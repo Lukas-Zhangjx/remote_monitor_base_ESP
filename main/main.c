@@ -6,8 +6,12 @@
 #include "esp_log.h"
 #include "wifi_sta.h"
 #include "http_server.h"
+#include "dht11.h"
 
 static const char *TAG = "main";
+
+/* DHT11 DATA 引脚，接 GPIO23 */
+#define DHT11_GPIO  GPIO_NUM_23
 
 /**
  * @brief  主任务：WiFi 连接完成后启动 HTTP 服务器，进入主循环
@@ -18,6 +22,12 @@ static void main_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "main_task started");
 
+    /* 初始化 DHT11，dht11_init 内部会等待 1s 让传感器稳定 */
+    if (dht11_init(DHT11_GPIO) != ESP_OK) {
+        ESP_LOGE(TAG, "dht11 init failed");
+        /* 初始化失败不退出，HTTP 服务器仍可正常运行，传感器显示 0 */
+    }
+
     /* 启动 HTTP 服务器，对外提供页面与 API */
     if (http_server_start() != ESP_OK) {
         ESP_LOGE(TAG, "http server failed to start, task exit");
@@ -26,8 +36,9 @@ static void main_task(void *pvParameters)
     }
 
     while (1) {
-        /* TODO: 周期性任务，如传感器采集、状态上报等 */
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        /* 每 2 秒读取一次 DHT11 并更新缓存（DHT11 采样周期限制 >= 2s） */
+        http_server_update_sensor();
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
