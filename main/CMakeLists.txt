@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "../wifi/wifi_sta.c"
+    INCLUDE_DIRS
+        "."
+        "../wifi"
+    REQUIRES
+        nvs_flash
+        esp_wifi
+        esp_event
+)
