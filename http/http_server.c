@@ -11,6 +11,7 @@
  */
 
 #include <string.h>
+#include "esp_err.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "http_server.h"
