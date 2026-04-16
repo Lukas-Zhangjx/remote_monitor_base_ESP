@@ -53,3 +53,21 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# ESP-IDF build output
+build/
+
+# SDK config backup
+sdkconfig.old
+
+# Eclipse project files
+.project
+.cproject
+.settings/
+
+# CLion / JetBrains
+.idea/
+cmake-build-*/
+
+# macOS
+.DS_Store
