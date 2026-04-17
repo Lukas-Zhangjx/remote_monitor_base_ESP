@@ -7,11 +7,15 @@
 #include "wifi_sta.h"
 #include "http_server.h"
 #include "dht11.h"
+#include "led.h"
 
 static const char *TAG = "main";
 
 /* DHT11 DATA 引脚，接 GPIO23 */
 #define DHT11_GPIO  GPIO_NUM_23
+
+/* LED 引脚，接 GPIO2 */
+#define LED_GPIO    GPIO_NUM_2
 
 /**
  * @brief  主任务：WiFi 连接完成后启动 HTTP 服务器，进入主循环
@@ -21,6 +25,11 @@ static const char *TAG = "main";
 static void main_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "main_task started");
+
+    /* 初始化 LED，配置 GPIO2 为推挽输出，默认熄灭 */
+    if (led_init(LED_GPIO) != ESP_OK) {
+        ESP_LOGE(TAG, "led init failed");
+    }
 
     /* 初始化 DHT11，dht11_init 内部会等待 1s 让传感器稳定 */
     if (dht11_init(DHT11_GPIO) != ESP_OK) {

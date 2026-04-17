@@ -4,11 +4,13 @@ idf_component_register(
         "../wifi/wifi_sta.c"
         "../http/http_server.c"
         "../sensor/dht11.c"
+        "../gpio/led.c"
     INCLUDE_DIRS
         "."
         "../wifi"
         "../http"
         "../sensor"
+        "../gpio"
     EMBED_FILES
         "web/index.html"
     REQUIRES
