@@ -26,6 +26,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/portmacro.h"
 #include "rom/ets_sys.h"
 
 static const char *TAG = "dht11";
@@ -33,8 +34,9 @@ static const char *TAG = "dht11";
 /* 记录初始化时配置的 GPIO 编号 */
 static gpio_num_t s_gpio_num = GPIO_NUM_NC;
 
-/* 等待总线电平变化的超时时间（μs） */
-#define DHT11_TIMEOUT_US  100
+/* 等待总线电平变化的超时时间（μs）
+ * DHT11 响应信号最长 80μs，留足余量设为 200μs */
+#define DHT11_TIMEOUT_US  200
 
 
 /**
@@ -106,18 +108,28 @@ esp_err_t dht11_read(dht11_data_t *data)
     gpio_set_level(s_gpio_num, 0);
     vTaskDelay(pdMS_TO_TICKS(20)); /* 20ms，大于最低要求 18ms */
 
-    /* 释放总线（拉高），等待 DHT11 响应，等待时间 20~40μs */
-    gpio_set_level(s_gpio_num, 1);
+    /* ---- 2. 关闭中断后进行时序关键段 ---- */
+    portDISABLE_INTERRUPTS();
+
+    /* 释放总线：切换为纯输入模式，彻底撤掉输出驱动，由上拉电阻拉高
+     * 开漏模式 set(1) 在某些情况下释放不干净，纯输入最可靠 */
+    gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT);
     ets_delay_us(30);
 
-    /* ---- 2. 等待 DHT11 响应信号 ---- */
-    /* DHT11 先拉低 80μs */
+    /* ---- 3. 等待 DHT11 响应 ---- */
+    /* 响应：先拉低 80μs */
     if (wait_for_level(0) < 0) {
+        portENABLE_INTERRUPTS();
+        gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT_OUTPUT_OD);
+        gpio_set_level(s_gpio_num, 1);
         ESP_LOGE(TAG, "timeout waiting for DHT11 response low");
         return ESP_ERR_TIMEOUT;
     }
     /* 再拉高 80μs */
     if (wait_for_level(1) < 0) {
+        portENABLE_INTERRUPTS();
+        gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT_OUTPUT_OD);
+        gpio_set_level(s_gpio_num, 1);
         ESP_LOGE(TAG, "timeout waiting for DHT11 response high");
         return ESP_ERR_TIMEOUT;
     }
@@ -126,6 +138,9 @@ esp_err_t dht11_read(dht11_data_t *data)
     for (int i = 0; i < 40; i++) {
         /* 每个 bit 以 50μs 低电平开始 */
         if (wait_for_level(0) < 0) {
+            portENABLE_INTERRUPTS();
+            gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT_OUTPUT_OD);
+            gpio_set_level(s_gpio_num, 1);
             ESP_LOGE(TAG, "timeout at bit %d low", i);
             return ESP_ERR_TIMEOUT;
         }
@@ -133,6 +148,9 @@ esp_err_t dht11_read(dht11_data_t *data)
          *   < 40μs → bit 0
          *   >= 40μs → bit 1 */
         if (wait_for_level(1) < 0) {
+            portENABLE_INTERRUPTS();
+            gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT_OUTPUT_OD);
+            gpio_set_level(s_gpio_num, 1);
             ESP_LOGE(TAG, "timeout at bit %d high start", i);
             return ESP_ERR_TIMEOUT;
         }
@@ -146,6 +164,12 @@ esp_err_t dht11_read(dht11_data_t *data)
         }
     }
 
+    portENABLE_INTERRUPTS();
+
+    /* 恢复开漏输出，总线拉高，等待下次通信 */
+    gpio_set_direction(s_gpio_num, GPIO_MODE_INPUT_OUTPUT_OD);
+    gpio_set_level(s_gpio_num, 1);
+
     /* ---- 4. 校验和验证 ---- */
     uint8_t checksum = raw[0] + raw[1] + raw[2] + raw[3];
     if (checksum != raw[4]) {
@@ -158,6 +182,6 @@ esp_err_t dht11_read(dht11_data_t *data)
     data->humidity    = (float)raw[0];
     data->temperature = (float)raw[2];
 
-    ESP_LOGD(TAG, "temp=%.1f humi=%.1f", data->temperature, data->humidity);
+    ESP_LOGI(TAG, "read ok: temp=%.1f humi=%.1f", data->temperature, data->humidity);
     return ESP_OK;
 }
