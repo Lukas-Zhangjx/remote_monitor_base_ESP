@@ -55,6 +55,7 @@ static void io_task(void *pvParameters)
 static void sensor_task(void *pvParameters)
 {
     /* --- 模块初始化 --- */
+    esp_log_level_set("dht11", ESP_LOG_NONE); /* DHT11 模块待更换，屏蔽日志 */
     dht11_init(DHT11_GPIO);
 
     ESP_LOGI(TAG, "sensor_task started");
