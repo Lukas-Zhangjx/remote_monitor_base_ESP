@@ -172,12 +172,12 @@
       </span>
     </div>
 
-    <!-- Relay -->
+    <!-- Light Switch -->
     <div class="card switch-card">
-      <span class="card-icon">🔌</span>
-      <span class="card-label">Relay Control</span>
+      <span class="card-icon" id="light-icon">💡</span>
+      <span class="card-label">Light Switch</span>
       <div class="switch-label-row">
-        <span class="switch-name">Relay 1</span>
+        <span class="switch-name">Living Room</span>
         <label class="toggle">
           <input type="checkbox" id="relay1-toggle" onchange="setRelay(1, this.checked)" />
           <span class="toggle-track"></span>
@@ -229,6 +229,7 @@
           statusEl.textContent = on ? 'On' : 'Off';
           statusEl.className   = 'switch-status ' + (on ? 'on' : 'off');
           document.getElementById('relay' + relay_id + '-toggle').checked = on;
+          document.getElementById('light-icon').textContent = on ? '💡' : '🌑';
         })
         .catch(() => {
           document.getElementById('relay' + relay_id + '-toggle').checked = !state;
