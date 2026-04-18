@@ -107,9 +107,13 @@ static void output_task(void *pvParameters)
     }
 
 
-    /* --- 主循环 --- */
+    /* --- 主循环：LED 反映障碍物检测状态 --- */
     while (1) {
-        /* TODO: LED 状态根据业务逻辑驱动 */
+        if (obstacle_detected()) {
+            led_on();
+        } else {
+            led_off();
+        }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
