@@ -8,6 +8,7 @@
 #include "dht11.h"
 #include "led.h"
 #include "obstacle.h"
+#include "ir_sensor.h"
 
 static const char *TAG = "main";
 
@@ -15,6 +16,7 @@ static const char *TAG = "main";
 #define DHT11_GPIO    GPIO_NUM_19
 #define LED_GPIO      GPIO_NUM_2
 #define OBSTACLE_GPIO GPIO_NUM_22
+#define IR_SENSOR_GPIO GPIO_NUM_23
 
 
 /* ================================================================
@@ -26,20 +28,29 @@ static void io_task(void *pvParameters)
 {
     /* --- 模块初始化 --- */
     obstacle_init(OBSTACLE_GPIO);
+    ir_sensor_init(IR_SENSOR_GPIO);
 
-    int last_state = -1; /* 上次状态，-1 表示未初始化 */
+    int last_obstacle = -1; /* 上次障碍物状态，-1 表示未初始化 */
+    int last_ir       = -1; /* 上次 IR 状态，-1 表示未初始化 */
 
     ESP_LOGI(TAG, "io_task started");
 
     /* --- 主循环 --- */
     while (1) {
-        int state = obstacle_detected();
+        /* 门窗传感器（障碍物模块，GPIO22） */
+        int obstacle = obstacle_detected();
+        if (obstacle != last_obstacle) {
+            ESP_LOGI(TAG, "door: %s", obstacle ? "CLOSED" : "OPEN");
+            http_server_update_obstacle(obstacle);
+            last_obstacle = obstacle;
+        }
 
-        /* 仅在状态变化时打印和更新缓存 */
-        if (state != last_state) {
-            ESP_LOGI(TAG, "obstacle: %s", state ? "DETECTED" : "clear");
-            http_server_update_obstacle(state);
-            last_state = state;
+        /* 红外检测传感器（GPIO23） */
+        int ir = ir_sensor_detected();
+        if (ir != last_ir) {
+            ESP_LOGI(TAG, "ir: %s", ir ? "DETECTED" : "clear");
+            http_server_update_ir(ir);
+            last_ir = ir;
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));

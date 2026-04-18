@@ -43,12 +43,21 @@ void http_server_stop(void);
 void http_server_update_sensor(void);
 
 /**
- * @brief  更新障碍物检测状态缓存
+ * @brief  更新障碍物检测状态缓存（门窗传感器）
  *
  * 应在 io_task 中检测到状态变化时调用。
  *
- * @param detected  1 = 检测到障碍物，0 = 无障碍物
+ * @param detected  1 = 检测到（门关），0 = 未检测到（门开）
  */
 void http_server_update_obstacle(int detected);
+
+/**
+ * @brief  更新红外传感器状态缓存（人体/移动检测）
+ *
+ * 应在 io_task 中检测到状态变化时调用。
+ *
+ * @param detected  1 = 检测到移动，0 = 无移动
+ */
+void http_server_update_ir(int detected);
 
 #endif /* HTTP_SERVER_H */
