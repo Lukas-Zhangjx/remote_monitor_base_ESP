@@ -33,16 +33,19 @@ static void io_task(void *pvParameters)
 
     /* --- 主循环 --- */
     while (1) {
+        int raw   = gpio_get_level(OBSTACLE_GPIO); /* 原始电平 */
         int state = obstacle_detected();
 
-        /* 仅在状态变化时更新，避免频繁刷日志和缓存写入 */
+        /* 调试：每秒打印原始电平，确认 GPIO 是否随障碍物变化 */
+        ESP_LOGI(TAG, "obstacle raw=%d detected=%d", raw, state);
+
+        /* 状态变化时同步到 HTTP 缓存 */
         if (state != last_state) {
-            ESP_LOGI(TAG, "obstacle: %s", state ? "DETECTED" : "clear");
             http_server_update_obstacle(state);
             last_state = state;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -98,13 +101,29 @@ static void output_task(void *pvParameters)
 
     ESP_LOGI(TAG, "output_task started");
 
-    /* 启动时闪烁 3 次，确认 LED 和任务正常运行 */
+    /* GPIO2 闪烁 3 次 */
     for (int i = 0; i < 3; i++) {
         led_on();
         vTaskDelay(pdMS_TO_TICKS(200));
         led_off();
         vTaskDelay(pdMS_TO_TICKS(200));
     }
+
+    /* GPIO23 测试：配置为推挽输出，拉高 1s 后恢复低电平
+     * 目的：确认 GPIO23 引脚本身是否正常工作 */
+    gpio_config_t io = {
+        .pin_bit_mask = (1ULL << GPIO_NUM_23),
+        .mode         = GPIO_MODE_OUTPUT,
+        .pull_up_en   = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type    = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io);
+    gpio_set_level(GPIO_NUM_23, 1);
+    ESP_LOGI(TAG, "GPIO23 HIGH");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    gpio_set_level(GPIO_NUM_23, 0);
+    ESP_LOGI(TAG, "GPIO23 LOW");
 
     /* --- 主循环 --- */
     while (1) {
