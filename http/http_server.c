@@ -127,8 +127,9 @@ static esp_err_t handler_get_sensors(httpd_req_t *req)
     char buf[96];
 
     /* 直接读取缓存，不在 HTTP handler 里阻塞等待传感器采样 */
+    /* door: 1 = 关闭（传感器检测到门），0 = 开启（无遮挡） */
     snprintf(buf, sizeof(buf),
-             "{\"temperature\":%.1f,\"humidity\":%.1f,\"obstacle\":%d}",
+             "{\"temperature\":%.1f,\"humidity\":%.1f,\"door\":%d}",
              s_sensor_cache.temperature,
              s_sensor_cache.humidity,
              s_obstacle_cache);

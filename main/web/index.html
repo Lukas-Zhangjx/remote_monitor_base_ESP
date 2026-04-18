@@ -138,7 +138,7 @@
 </head>
 <body>
 
-  <h1>ESP32 Monitor</h1>
+  <h1>Smart Home Monitor</h1>
 
   <div class="grid">
 
@@ -162,13 +162,13 @@
       </div>
     </div>
 
-    <!-- Obstacle -->
+    <!-- Door Sensor -->
     <div class="card">
-      <span class="card-icon">🔦</span>
-      <span class="card-label">Obstacle Detection</span>
-      <span class="obstacle-badge clear" id="obstacle-badge">
+      <span class="card-icon" id="door-icon">🚪</span>
+      <span class="card-label">Door Sensor</span>
+      <span class="obstacle-badge clear" id="door-badge">
         <span class="obstacle-dot"></span>
-        <span id="obstacle-text">Clear</span>
+        <span id="door-text">Closed</span>
       </span>
     </div>
 
@@ -201,12 +201,14 @@
           document.getElementById('humidity').textContent =
             data.humidity !== undefined ? data.humidity.toFixed(1) : '--';
 
-          /* Obstacle */
-          const badge   = document.getElementById('obstacle-badge');
-          const text    = document.getElementById('obstacle-text');
-          const detected = data.obstacle === 1;
-          badge.className = 'obstacle-badge ' + (detected ? 'detected' : 'clear');
-          text.textContent = detected ? 'Detected' : 'Clear';
+          /* Door sensor: door=1 → closed (safe), door=0 → open (alert) */
+          const badge  = document.getElementById('door-badge');
+          const text   = document.getElementById('door-text');
+          const icon   = document.getElementById('door-icon');
+          const closed = data.door === 1;
+          badge.className  = 'obstacle-badge ' + (closed ? 'clear' : 'detected');
+          text.textContent = closed ? 'Closed' : 'Open';
+          icon.textContent = closed ? '🚪' : '🔓';
 
           document.getElementById('last-update').textContent =
             'Last updated: ' + new Date().toLocaleTimeString();
