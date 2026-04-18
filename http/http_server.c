@@ -41,6 +41,9 @@ static dht11_data_t s_sensor_cache = {
     .humidity    = 0.0f,
 };
 
+/* 缓存障碍物检测状态：1 = 检测到，0 = 无障碍 */
+static int s_obstacle_cache = 0;
+
 /**
  * @brief  更新传感器缓存，应在 main_task 中周期性调用（建议间隔 >= 2s）
  *
@@ -55,6 +58,11 @@ void http_server_update_sensor(void)
     } else {
         ESP_LOGW("http_server", "dht11_read failed: %d, using cached data", ret);
     }
+}
+
+void http_server_update_obstacle(int detected)
+{
+    s_obstacle_cache = detected;
 }
 
 /* ================================================================
@@ -118,13 +126,14 @@ static esp_err_t handler_get_index(httpd_req_t *req)
  */
 static esp_err_t handler_get_sensors(httpd_req_t *req)
 {
-    char buf[64];
+    char buf[96];
 
-    /* 直接读取缓存，不在 HTTP handler 里阻塞等待 DHT11 采样 */
+    /* 直接读取缓存，不在 HTTP handler 里阻塞等待传感器采样 */
     snprintf(buf, sizeof(buf),
-             "{\"temperature\":%.1f,\"humidity\":%.1f}",
+             "{\"temperature\":%.1f,\"humidity\":%.1f,\"obstacle\":%d}",
              s_sensor_cache.temperature,
-             s_sensor_cache.humidity);
+             s_sensor_cache.humidity,
+             s_obstacle_cache);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, buf);

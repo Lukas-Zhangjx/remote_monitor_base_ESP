@@ -35,9 +35,10 @@ static void io_task(void *pvParameters)
     while (1) {
         int state = obstacle_detected();
 
-        /* 仅在状态变化时打印，避免频繁刷日志 */
+        /* 仅在状态变化时更新，避免频繁刷日志和缓存写入 */
         if (state != last_state) {
             ESP_LOGI(TAG, "obstacle: %s", state ? "DETECTED" : "clear");
+            http_server_update_obstacle(state);
             last_state = state;
         }
 

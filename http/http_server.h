@@ -37,9 +37,18 @@ void http_server_stop(void);
 /**
  * @brief  读取 DHT11 并更新传感器缓存
  *
- * 应在 main_task 中每 2 秒以上调用一次（DHT11 采样周期限制）。
+ * 应在 sensor_task 中每 2 秒以上调用一次（DHT11 采样周期限制）。
  * HTTP handler 直接读缓存，不阻塞请求处理。
  */
 void http_server_update_sensor(void);
+
+/**
+ * @brief  更新障碍物检测状态缓存
+ *
+ * 应在 io_task 中检测到状态变化时调用。
+ *
+ * @param detected  1 = 检测到障碍物，0 = 无障碍物
+ */
+void http_server_update_obstacle(int detected);
 
 #endif /* HTTP_SERVER_H */

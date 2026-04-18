@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 远程监控</title>
+  <title>ESP32 Monitor</title>
   <style>
-    /* ===== 全局 ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -27,13 +26,12 @@
       margin-bottom: 28px;
     }
 
-    /* ===== 卡片容器 ===== */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
       width: 100%;
-      max-width: 860px;
+      max-width: 900px;
     }
 
     .card {
@@ -50,10 +48,7 @@
 
     .card:hover { border-color: #38bdf8; }
 
-    .card-icon {
-      font-size: 2rem;
-      line-height: 1;
-    }
+    .card-icon  { font-size: 2rem; line-height: 1; }
 
     .card-label {
       font-size: 0.8rem;
@@ -69,13 +64,37 @@
       line-height: 1;
     }
 
-    .card-unit {
-      font-size: 1rem;
-      color: #64748b;
-      margin-left: 4px;
+    .card-unit { font-size: 1rem; color: #64748b; margin-left: 4px; }
+
+    /* ── Obstacle card ── */
+    .obstacle-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 999px;
+      transition: background 0.3s, color 0.3s;
     }
 
-    /* ===== 开关卡片 ===== */
+    .obstacle-badge.clear    { background: #064e3b; color: #34d399; }
+    .obstacle-badge.detected { background: #7f1d1d; color: #f87171; }
+
+    .obstacle-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .obstacle-badge.detected .obstacle-dot {
+      animation: blink 0.8s step-start infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Relay card ── */
     .card.switch-card { gap: 16px; }
 
     .switch-label-row {
@@ -85,20 +104,9 @@
       width: 100%;
     }
 
-    .switch-name {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: #cbd5e1;
-    }
+    .switch-name { font-size: 0.95rem; font-weight: 600; color: #cbd5e1; }
 
-    /* Toggle switch */
-    .toggle {
-      position: relative;
-      width: 52px;
-      height: 28px;
-      cursor: pointer;
-    }
-
+    .toggle { position: relative; width: 52px; height: 28px; cursor: pointer; }
     .toggle input { opacity: 0; width: 0; height: 0; }
 
     .toggle-track {
@@ -111,87 +119,79 @@
 
     .toggle-thumb {
       position: absolute;
-      top: 4px;
-      left: 4px;
-      width: 20px;
-      height: 20px;
+      top: 4px; left: 4px;
+      width: 20px; height: 20px;
       background: #94a3b8;
       border-radius: 50%;
       transition: transform 0.25s, background 0.25s;
     }
 
     .toggle input:checked ~ .toggle-track { background: #0ea5e9; }
-    .toggle input:checked ~ .toggle-thumb {
-      transform: translateX(24px);
-      background: #fff;
-    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(24px); background: #fff; }
 
-    .switch-status {
-      font-size: 0.78rem;
-      color: #64748b;
-    }
+    .switch-status           { font-size: 0.78rem; color: #64748b; }
+    .switch-status.on        { color: #34d399; }
+    .switch-status.off       { color: #f87171; }
 
-    .switch-status.on  { color: #34d399; }
-    .switch-status.off { color: #f87171; }
-
-    /* ===== 刷新时间 ===== */
-    .footer {
-      margin-top: 28px;
-      font-size: 0.75rem;
-      color: #475569;
-    }
+    .footer { margin-top: 28px; font-size: 0.75rem; color: #475569; }
   </style>
 </head>
 <body>
 
-  <h1>ESP32 远程监控</h1>
+  <h1>ESP32 Monitor</h1>
 
   <div class="grid">
 
-    <!-- 温度卡片 -->
+    <!-- Temperature -->
     <div class="card">
       <span class="card-icon">🌡️</span>
-      <span class="card-label">温度</span>
+      <span class="card-label">Temperature</span>
       <div>
         <span class="card-value" id="temperature">--</span>
         <span class="card-unit">°C</span>
       </div>
     </div>
 
-    <!-- 湿度卡片 -->
+    <!-- Humidity -->
     <div class="card">
       <span class="card-icon">💧</span>
-      <span class="card-label">湿度</span>
+      <span class="card-label">Humidity</span>
       <div>
         <span class="card-value" id="humidity">--</span>
         <span class="card-unit">%</span>
       </div>
     </div>
 
-    <!-- 继电器开关卡片 -->
+    <!-- Obstacle -->
+    <div class="card">
+      <span class="card-icon">🔦</span>
+      <span class="card-label">Obstacle Detection</span>
+      <span class="obstacle-badge clear" id="obstacle-badge">
+        <span class="obstacle-dot"></span>
+        <span id="obstacle-text">Clear</span>
+      </span>
+    </div>
+
+    <!-- Relay -->
     <div class="card switch-card">
       <span class="card-icon">🔌</span>
-      <span class="card-label">继电器控制</span>
+      <span class="card-label">Relay Control</span>
       <div class="switch-label-row">
-        <span class="switch-name">继电器 1</span>
+        <span class="switch-name">Relay 1</span>
         <label class="toggle">
           <input type="checkbox" id="relay1-toggle" onchange="setRelay(1, this.checked)" />
           <span class="toggle-track"></span>
           <span class="toggle-thumb"></span>
         </label>
       </div>
-      <span class="switch-status off" id="relay1-status">关闭</span>
+      <span class="switch-status off" id="relay1-status">Off</span>
     </div>
 
   </div>
 
-  <div class="footer" id="last-update">上次更新：--</div>
+  <div class="footer" id="last-update">Last updated: --</div>
 
   <script>
-    /* ============================================================
-     * fetchSensors — 轮询 /api/sensors 获取传感器数据并更新 DOM
-     * 每 2 秒调用一次
-     * ============================================================ */
     function fetchSensors() {
       fetch('/api/sensors')
         .then(r => r.json())
@@ -201,23 +201,21 @@
           document.getElementById('humidity').textContent =
             data.humidity !== undefined ? data.humidity.toFixed(1) : '--';
 
-          // 更新时间戳
+          /* Obstacle */
+          const badge   = document.getElementById('obstacle-badge');
+          const text    = document.getElementById('obstacle-text');
+          const detected = data.obstacle === 1;
+          badge.className = 'obstacle-badge ' + (detected ? 'detected' : 'clear');
+          text.textContent = detected ? 'Detected' : 'Clear';
+
           document.getElementById('last-update').textContent =
-            '上次更新：' + new Date().toLocaleTimeString();
+            'Last updated: ' + new Date().toLocaleTimeString();
         })
-        .catch(() => {
-          // 请求失败时保留上次数据，不重置显示
-        });
+        .catch(() => {});
     }
 
-    /* ============================================================
-     * setRelay — 发送继电器控制指令到 /api/relay
-     * relay_id : 继电器编号（当前只有 1）
-     * state    : true = 打开，false = 关闭
-     * ============================================================ */
     function setRelay(relay_id, state) {
       const statusEl = document.getElementById('relay' + relay_id + '-status');
-
       fetch('/api/relay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,21 +223,16 @@
       })
         .then(r => r.json())
         .then(data => {
-          // 根据服务器返回的实际状态更新显示
           const on = data.state === 1;
-          statusEl.textContent = on ? '开启' : '关闭';
+          statusEl.textContent = on ? 'On' : 'Off';
           statusEl.className   = 'switch-status ' + (on ? 'on' : 'off');
-          // 同步 toggle 状态，防止服务端与前端不一致
           document.getElementById('relay' + relay_id + '-toggle').checked = on;
         })
         .catch(() => {
-          // 请求失败时回滚 toggle 状态
-          const toggle = document.getElementById('relay' + relay_id + '-toggle');
-          toggle.checked = !state;
+          document.getElementById('relay' + relay_id + '-toggle').checked = !state;
         });
     }
 
-    // 页面加载后立即拉取一次，随后每 2 秒轮询
     fetchSensors();
     setInterval(fetchSensors, 2000);
   </script>
