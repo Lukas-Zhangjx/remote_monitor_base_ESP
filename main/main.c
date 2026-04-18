@@ -8,6 +8,7 @@
 #include "http_server.h"
 #include "dht11.h"
 #include "led.h"
+#include "obstacle.h"
 
 static const char *TAG = "main";
 
@@ -16,6 +17,9 @@ static const char *TAG = "main";
 
 /* LED 引脚，接 GPIO2 */
 #define LED_GPIO    GPIO_NUM_2
+
+/* 障碍物传感器 OUT 引脚，接 GPIO22 */
+#define OBSTACLE_GPIO  GPIO_NUM_22
 
 /**
  * @brief  主任务：WiFi 连接完成后启动 HTTP 服务器，进入主循环
@@ -31,6 +35,11 @@ static void main_task(void *pvParameters)
         ESP_LOGE(TAG, "led init failed");
     }
 
+
+    /* 初始化障碍物传感器 */
+    if (obstacle_init(OBSTACLE_GPIO) != ESP_OK) {
+        ESP_LOGE(TAG, "obstacle sensor init failed");
+    }
 
     /* 初始化 DHT11，dht11_init 内部会等待 1s 让传感器稳定 */
     if (dht11_init(DHT11_GPIO) != ESP_OK) {
@@ -48,6 +57,10 @@ static void main_task(void *pvParameters)
     while (1) {
         /* 每 2 秒读取一次 DHT11 并更新缓存（DHT11 采样周期限制 >= 2s） */
         http_server_update_sensor();
+
+        /* 打印障碍物检测状态，验证模块工作是否正常 */
+        ESP_LOGI(TAG, "obstacle: %s", obstacle_detected() ? "DETECTED" : "clear");
+
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }

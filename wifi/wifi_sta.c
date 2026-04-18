@@ -69,11 +69,13 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         if (s_retry_num < EXAMPLE_ESP_MAXIMUM_RETRY) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGI(TAG, "retry to connect to the AP");
+            ESP_LOGW(TAG, "connect to '%s' failed, retry %d/%d",
+                     EXAMPLE_ESP_WIFI_SSID, s_retry_num, EXAMPLE_ESP_MAXIMUM_RETRY);
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+            ESP_LOGE(TAG, "give up connecting to '%s' after %d retries",
+                     EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_MAXIMUM_RETRY);
         }
-        ESP_LOGI(TAG,"connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -131,22 +133,23 @@ void wifi_init_sta(void)
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
      * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
+    /* 最多等待 30s：5次重试 × 每次约 5s 超时，留足余量
+     * 若驱动卡死不发事件，也能自动解除阻塞继续运行 */
+    #define WIFI_WAIT_TIMEOUT_MS  30000
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
             WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
             pdFALSE,
             pdFALSE,
-            portMAX_DELAY);
+            pdMS_TO_TICKS(WIFI_WAIT_TIMEOUT_MS));
 
-    /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
-     * happened. */
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+        ESP_LOGI(TAG, "connected to '%s'", EXAMPLE_ESP_WIFI_SSID);
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-                 EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+        /* WiFi 连接失败，继续运行，HTTP 服务不可用但传感器仍可正常工作 */
+        ESP_LOGW(TAG, "WiFi connect failed, running without network");
     } else {
-        ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        /* 30s 超时仍无事件，驱动可能卡死，强制继续 */
+        ESP_LOGE(TAG, "WiFi wait timeout (%dms), continuing without network", WIFI_WAIT_TIMEOUT_MS);
     }
 }
 

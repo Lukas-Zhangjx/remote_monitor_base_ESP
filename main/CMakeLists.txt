@@ -4,6 +4,7 @@ idf_component_register(
         "../wifi/wifi_sta.c"
         "../http/http_server.c"
         "../sensor/dht11.c"
+        "../sensor/obstacle.c"
         "../gpio/led.c"
     INCLUDE_DIRS
         "."

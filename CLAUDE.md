@@ -34,6 +34,25 @@
 - 模块文件顶部写模块说明注释（功能概述、依赖关系）
 - 桩函数必须注释标明 `TODO` 及预期实现内容
 
+### 嵌入式超时策略
+- **禁止使用 `portMAX_DELAY` 或任何形式的永久阻塞等待**
+- 所有阻塞调用必须设置有限超时，并处理超时返回值：
+  - `xEventGroupWaitBits()` → 用 `pdMS_TO_TICKS(N)` 替代 `portMAX_DELAY`
+  - `xQueueReceive()` / `xSemaphoreTake()` → 同上
+  - `wait_for_level()` 等自旋等待 → 必须有计数器上限
+- 超时后必须有明确处理：打印错误日志 + 走降级路径（跳过、重试或报错返回），不得卡死
+- 示例：
+  ```c
+  /* 错误：永久阻塞 */
+  xEventGroupWaitBits(group, BIT0, pdFALSE, pdFALSE, portMAX_DELAY);
+
+  /* 正确：有限超时 + 超时处理 */
+  EventBits_t bits = xEventGroupWaitBits(group, BIT0, pdFALSE, pdFALSE, pdMS_TO_TICKS(5000));
+  if (!(bits & BIT0)) {
+      ESP_LOGE(TAG, "wait timeout, fallback");
+  }
+  ```
+
 ### 其他
 - 头文件必须有 include guard：
   ```c
