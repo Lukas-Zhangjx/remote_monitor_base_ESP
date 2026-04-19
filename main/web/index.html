@@ -229,6 +229,11 @@
           mText.textContent = motion ? 'Detected' : 'Clear';
           mIcon.textContent = motion ? '🚨' : '🚶';
 
+          /* Only update the icon from actual light state (auto or manual) */
+          if (data.light !== undefined) {
+            document.getElementById('light-icon').textContent = data.light === 1 ? '💡' : '🌑';
+          }
+
           document.getElementById('last-update').textContent =
             'Last updated: ' + new Date().toLocaleTimeString();
         })

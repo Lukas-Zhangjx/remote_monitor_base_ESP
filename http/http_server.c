@@ -15,7 +15,7 @@
 #include "esp_http_server.h"
 #include "http_server.h"
 #include "dht11.h"
-#include "relay.h"
+#include "light_ctrl.h"
 
 static const char *TAG = "http_server";
 
@@ -113,11 +113,12 @@ static esp_err_t handler_get_sensors(httpd_req_t *req)
     /* door: 1 = 关闭（传感器检测到门），0 = 开启（无遮挡）     */
     /* motion: 1 = 检测到移动，0 = 无移动                       */
     snprintf(buf, sizeof(buf),
-             "{\"temperature\":%.1f,\"humidity\":%.1f,\"door\":%d,\"motion\":%d}",
+             "{\"temperature\":%.1f,\"humidity\":%.1f,\"door\":%d,\"motion\":%d,\"light\":%d}",
              s_sensor_cache.temperature,
              s_sensor_cache.humidity,
              s_obstacle_cache,
-             s_ir_cache);
+             s_ir_cache,
+             light_ctrl_get_state());
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, buf);
@@ -161,7 +162,8 @@ static esp_err_t handler_post_relay(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int actual_state = relay_set(state);
+    light_ctrl_set_manual(state);
+    int actual_state = light_ctrl_get_state();
 
     /* 返回实际状态 */
     char resp[32];

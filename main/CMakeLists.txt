@@ -8,12 +8,14 @@ idf_component_register(
         "../sensor/ir_sensor.c"
         "../gpio/led.c"
         "../gpio/relay.c"
+        "../logic/light_ctrl.c"
     INCLUDE_DIRS
         "."
         "../wifi"
         "../http"
         "../sensor"
         "../gpio"
+        "../logic"
     EMBED_FILES
         "web/index.html"
     REQUIRES
