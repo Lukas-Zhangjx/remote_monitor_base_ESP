@@ -29,10 +29,6 @@ static const char *TAG = "main";
  * ================================================================ */
 static void io_task(void *pvParameters)
 {
-    /* --- 模块初始化 --- */
-    obstacle_init(OBSTACLE_GPIO);
-    ir_sensor_init(IR_SENSOR_GPIO);
-
     int last_obstacle = -1; /* 上次障碍物状态，-1 表示未初始化 */
     int last_ir       = -1; /* 上次 IR 状态，-1 表示未初始化 */
 
@@ -76,10 +72,6 @@ static void io_task(void *pvParameters)
  * ================================================================ */
 static void sensor_task(void *pvParameters)
 {
-    /* --- 模块初始化 --- */
-    esp_log_level_set("dht11", ESP_LOG_NONE); /* DHT11 模块待更换，屏蔽日志 */
-    dht11_init(DHT11_GPIO);
-
     ESP_LOGI(TAG, "sensor_task started");
 
     /* --- 主循环 --- */
@@ -115,11 +107,6 @@ static void network_task(void *pvParameters)
  * ================================================================ */
 static void output_task(void *pvParameters)
 {
-    /* --- 模块初始化 --- */
-    led_init(LED_GPIO);
-    relay_init(RELAY_GPIO);
-    light_ctrl_init();
-
     ESP_LOGI(TAG, "output_task started");
 
     /* GPIO2 闪烁 3 次 */
@@ -157,6 +144,15 @@ void app_main(void)
 
     /* 连接 WiFi，超时后继续运行 */
     wifi_station_startup();
+
+    /* 硬件模块初始化（在任务启动前完成，避免竞态） */
+    led_init(LED_GPIO);
+    relay_init(RELAY_GPIO);
+    light_ctrl_init();
+    obstacle_init(OBSTACLE_GPIO);
+    ir_sensor_init(IR_SENSOR_GPIO);
+    esp_log_level_set("dht11", ESP_LOG_NONE);
+    dht11_init(DHT11_GPIO);
 
     /* 创建框架任务 */
     xTaskCreate(io_task,      "io_task",      4096, NULL, 4, NULL);
