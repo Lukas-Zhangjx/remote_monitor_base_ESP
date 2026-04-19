@@ -172,6 +172,16 @@
       </span>
     </div>
 
+    <!-- Motion Sensor -->
+    <div class="card">
+      <span class="card-icon" id="motion-icon">🚶</span>
+      <span class="card-label">Motion Sensor</span>
+      <span class="obstacle-badge clear" id="motion-badge">
+        <span class="obstacle-dot"></span>
+        <span id="motion-text">Clear</span>
+      </span>
+    </div>
+
     <!-- Light Switch -->
     <div class="card switch-card">
       <span class="card-icon" id="light-icon">💡</span>
@@ -209,6 +219,15 @@
           badge.className  = 'obstacle-badge ' + (closed ? 'clear' : 'detected');
           text.textContent = closed ? 'Closed' : 'Open';
           icon.textContent = closed ? '🚪' : '🔓';
+
+          /* Motion sensor: motion=1 → detected (alert), motion=0 → clear */
+          const mBadge   = document.getElementById('motion-badge');
+          const mText    = document.getElementById('motion-text');
+          const mIcon    = document.getElementById('motion-icon');
+          const motion   = data.motion === 1;
+          mBadge.className  = 'obstacle-badge ' + (motion ? 'detected' : 'clear');
+          mText.textContent = motion ? 'Detected' : 'Clear';
+          mIcon.textContent = motion ? '🚨' : '🚶';
 
           document.getElementById('last-update').textContent =
             'Last updated: ' + new Date().toLocaleTimeString();

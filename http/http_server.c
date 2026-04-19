@@ -41,8 +41,11 @@ static dht11_data_t s_sensor_cache = {
     .humidity    = 0.0f,
 };
 
-/* 缓存障碍物检测状态：1 = 检测到，0 = 无障碍 */
+/* 缓存障碍物检测状态：1 = 检测到（门关），0 = 无障碍（门开） */
 static int s_obstacle_cache = 0;
+
+/* 缓存红外传感器状态：1 = 检测到移动，0 = 无移动 */
+static int s_ir_cache = 0;
 
 /**
  * @brief  更新传感器缓存，应在 main_task 中周期性调用（建议间隔 >= 2s）
@@ -61,6 +64,11 @@ void http_server_update_sensor(void)
 void http_server_update_obstacle(int detected)
 {
     s_obstacle_cache = detected;
+}
+
+void http_server_update_ir(int detected)
+{
+    s_ir_cache = detected;
 }
 
 /* ================================================================
@@ -124,15 +132,17 @@ static esp_err_t handler_get_index(httpd_req_t *req)
  */
 static esp_err_t handler_get_sensors(httpd_req_t *req)
 {
-    char buf[96];
+    char buf[128];
 
     /* 直接读取缓存，不在 HTTP handler 里阻塞等待传感器采样 */
-    /* door: 1 = 关闭（传感器检测到门），0 = 开启（无遮挡） */
+    /* door: 1 = 关闭（传感器检测到门），0 = 开启（无遮挡）     */
+    /* motion: 1 = 检测到移动，0 = 无移动                       */
     snprintf(buf, sizeof(buf),
-             "{\"temperature\":%.1f,\"humidity\":%.1f,\"door\":%d}",
+             "{\"temperature\":%.1f,\"humidity\":%.1f,\"door\":%d,\"motion\":%d}",
              s_sensor_cache.temperature,
              s_sensor_cache.humidity,
-             s_obstacle_cache);
+             s_obstacle_cache,
+             s_ir_cache);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr(req, buf);

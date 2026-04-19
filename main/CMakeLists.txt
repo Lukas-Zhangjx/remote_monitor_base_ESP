@@ -5,6 +5,7 @@ idf_component_register(
         "../http/http_server.c"
         "../sensor/dht11.c"
         "../sensor/obstacle.c"
+        "../sensor/ir_sensor.c"
         "../gpio/led.c"
     INCLUDE_DIRS
         "."
