@@ -15,6 +15,7 @@
 #include "esp_http_server.h"
 #include "http_server.h"
 #include "dht11.h"
+#include "relay.h"
 
 static const char *TAG = "http_server";
 
@@ -72,34 +73,8 @@ void http_server_update_ir(int detected)
 }
 
 /* ================================================================
- *  继电器桩函数 — 待 GPIO 驱动完成后替换
+ *  继电器控制 — 通过 relay 模块驱动 GPIO15
  * ================================================================ */
-
-/**
- * @brief  设置继电器状态（桩）
- *
- * TODO: 替换为 GPIO 驱动实现，控制对应继电器引脚电平
- *
- * @param relay_id  继电器编号（当前只有 1）
- * @param state     1 = 吸合（开启），0 = 断开（关闭）
- * @return          实际设置后的状态
- */
-
-/**
- * @brief  设置继电器状态（桩）
- *
- * TODO: 替换为 GPIO 驱动实现，控制对应继电器引脚电平
- *
- * @param relay_id  继电器编号（当前只有 1）
- * @param state     1 = 吸合（开启），0 = 断开（关闭）
- * @return          实际设置后的状态（与入参一致，驱动实现后应读回确认）
- */
-static int stub_set_relay(int relay_id, int state)
-{
-    /* TODO: gpio_set_level(RELAY1_GPIO, state); */
-    ESP_LOGI(TAG, "relay %d -> %s (stub)", relay_id, state ? "ON" : "OFF");
-    return state;
-}
 
 
 /* ================================================================
@@ -186,7 +161,7 @@ static esp_err_t handler_post_relay(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    int actual_state = stub_set_relay(relay_id, state);
+    int actual_state = relay_set(state);
 
     /* 返回实际状态 */
     char resp[32];

@@ -7,6 +7,7 @@
 #include "http_server.h"
 #include "dht11.h"
 #include "led.h"
+#include "relay.h"
 #include "obstacle.h"
 #include "ir_sensor.h"
 
@@ -15,8 +16,9 @@ static const char *TAG = "main";
 /* 引脚定义 */
 #define DHT11_GPIO    GPIO_NUM_19
 #define LED_GPIO      GPIO_NUM_2
-#define OBSTACLE_GPIO GPIO_NUM_22
+#define OBSTACLE_GPIO  GPIO_NUM_22
 #define IR_SENSOR_GPIO GPIO_NUM_23
+#define RELAY_GPIO     GPIO_NUM_15
 
 
 /* ================================================================
@@ -106,6 +108,7 @@ static void output_task(void *pvParameters)
 {
     /* --- 模块初始化 --- */
     led_init(LED_GPIO);
+    relay_init(RELAY_GPIO);
 
     ESP_LOGI(TAG, "output_task started");
 

@@ -7,6 +7,7 @@ idf_component_register(
         "../sensor/obstacle.c"
         "../sensor/ir_sensor.c"
         "../gpio/led.c"
+        "../gpio/relay.c"
     INCLUDE_DIRS
         "."
         "../wifi"

@@ -30,7 +30,7 @@ esp_err_t ir_sensor_init(gpio_num_t gpio_num)
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << gpio_num),
         .mode         = GPIO_MODE_INPUT,
-        .pull_up_en   = GPIO_PULLUP_ENABLE,    /* 上拉，无目标时保持高电平 */
+        .pull_up_en   = GPIO_PULLUP_DISABLE,   /* HC-SR501 自驱动，不需要上拉 */
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type    = GPIO_INTR_DISABLE,
     };
@@ -53,6 +53,6 @@ esp_err_t ir_sensor_init(gpio_num_t gpio_num)
  */
 int ir_sensor_detected(void)
 {
-    /* OUT 低电平有效，取反后 1 表示"检测到" */
-    return gpio_get_level(s_gpio_num) == 0 ? 1 : 0;
+    /* HC-SR501 高电平有效：OUT=HIGH 表示检测到移动 */
+    return gpio_get_level(s_gpio_num);
 }
