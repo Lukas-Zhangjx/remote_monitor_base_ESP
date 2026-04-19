@@ -17,7 +17,7 @@ static const char *TAG = "main";
 /* 引脚定义 */
 #define DHT11_GPIO    GPIO_NUM_19
 #define LED_GPIO      GPIO_NUM_2
-#define OBSTACLE_GPIO  GPIO_NUM_22
+#define OBSTACLE_GPIO  GPIO_NUM_4
 #define IR_SENSOR_GPIO GPIO_NUM_23
 #define RELAY_GPIO     GPIO_NUM_15
 
