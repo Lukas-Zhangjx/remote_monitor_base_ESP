@@ -85,6 +85,40 @@ esp32_projects/exp_wifi/
 
 All hardware modules are initialized in `app_main` before tasks start, eliminating race conditions.
 
+### Module Interaction & Data Flow
+
+```
+app_main
+  │
+  ├─ Hardware Init (all GPIO / ADC before tasks start)
+  │
+  ├─► io_task (100ms)
+  │     ├─ obstacle_detected()       ──► http_server_update_obstacle()
+  │     ├─ ir_sensor_detected()      ──► http_server_update_ir()
+  │     │                            ──► light_ctrl_on_motion() / light_ctrl_on_idle()
+  │     └─ light_ctrl_tick()         ──► relay_set() (auto off timer)
+  │
+  ├─► sensor_task (2000ms)
+  │     ├─ dht11_read()              ──► http_server_update_sensor()
+  │     └─ light_sensor_analog/digital() ──► http_server_update_light()
+  │
+  ├─► network_task
+  │     └─ http_server_start()
+  │           └─ httpd_thread (internal, event-driven)
+  │                 ├─ GET /              → serve index.html (embedded in flash)
+  │                 ├─ GET /api/sensors  → read caches → JSON response
+  │                 └─ POST /api/relay   → light_ctrl_set_manual() → relay_set()
+  │
+  └─► output_task (1000ms)
+        └─ led_on() (system running indicator)
+```
+
+**Key design decisions:**
+- Sensor data is written to caches by tasks, read from caches by HTTP handlers — no blocking in request handling
+- `light_ctrl` is the single source of truth for relay state; both `io_task` (auto) and HTTP handler (manual) go through it
+- `index.html` is embedded in firmware via `EMBED_FILES`, no filesystem needed
+- Browser polls `/api/sensors` every 2 seconds via `setInterval` — simple and reliable over LAN
+
 ### REST API
 
 | Method | Endpoint | Description |
