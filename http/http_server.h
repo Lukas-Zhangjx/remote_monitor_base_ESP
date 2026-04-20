@@ -60,4 +60,13 @@ void http_server_update_obstacle(int detected);
  */
 void http_server_update_ir(int detected);
 
+/**
+ * @brief  更新光敏传感器缓存
+ *
+ * @param percent  光照百分比 0-100（100=最亮）
+ * @param raw      ADC 原始值 0-4095（用于标定）
+ * @param digital  1 = 有光，0 = 暗
+ */
+void http_server_update_light(int percent, int raw, int digital);
+
 #endif /* HTTP_SERVER_H */

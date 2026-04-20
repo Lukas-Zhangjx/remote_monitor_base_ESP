@@ -172,6 +172,21 @@
       </span>
     </div>
 
+    <!-- Light Sensor -->
+    <div class="card">
+      <span class="card-icon" id="light-sensor-icon">☀️</span>
+      <span class="card-label">Light Sensor</span>
+      <div>
+        <span class="card-value" id="lux-value">--</span>
+        <span class="card-unit">%</span>
+      </div>
+      <span class="obstacle-badge clear" id="bright-badge">
+        <span class="obstacle-dot"></span>
+        <span id="bright-text">Bright</span>
+      </span>
+      <span class="card-unit" style="font-size:0.75rem">raw: <span id="lux-raw">--</span></span>
+    </div>
+
     <!-- Motion Sensor -->
     <div class="card">
       <span class="card-icon" id="motion-icon">🚶</span>
@@ -219,6 +234,17 @@
           badge.className  = 'obstacle-badge ' + (closed ? 'clear' : 'detected');
           text.textContent = closed ? 'Closed' : 'Open';
           icon.textContent = closed ? '🚪' : '🔓';
+
+          /* Light sensor */
+          if (data.lux !== undefined) {
+            document.getElementById('lux-value').textContent = data.lux;
+            document.getElementById('lux-raw').textContent = data.lux_raw;
+            const bright = data.bright === 1;
+            const bb = document.getElementById('bright-badge');
+            bb.className = 'obstacle-badge ' + (bright ? 'clear' : 'detected');
+            document.getElementById('bright-text').textContent = bright ? 'Bright' : 'Dark';
+            document.getElementById('light-sensor-icon').textContent = bright ? '☀️' : '🌑';
+          }
 
           /* Motion sensor: motion=1 → detected (alert), motion=0 → clear */
           const mBadge   = document.getElementById('motion-badge');

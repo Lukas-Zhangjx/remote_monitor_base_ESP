@@ -6,6 +6,7 @@ idf_component_register(
         "../sensor/dht11.c"
         "../sensor/obstacle.c"
         "../sensor/ir_sensor.c"
+        "../sensor/light_sensor.c"
         "../gpio/led.c"
         "../gpio/relay.c"
         "../logic/light_ctrl.c"
@@ -26,4 +27,5 @@ idf_component_register(
         esp_http_server
         esp_driver_gpio
         esp_timer
+        esp_adc
 )

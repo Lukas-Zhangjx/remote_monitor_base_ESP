@@ -11,6 +11,8 @@
 #include "obstacle.h"
 #include "light_ctrl.h"
 #include "ir_sensor.h"
+#include "light_sensor.h"
+#include "esp_adc/adc_oneshot.h"
 
 static const char *TAG = "main";
 
@@ -19,7 +21,9 @@ static const char *TAG = "main";
 #define LED_GPIO      GPIO_NUM_2
 #define OBSTACLE_GPIO  GPIO_NUM_4
 #define IR_SENSOR_GPIO GPIO_NUM_23
-#define RELAY_GPIO     GPIO_NUM_15
+#define RELAY_GPIO          GPIO_NUM_15
+#define LIGHT_DIGITAL_GPIO  GPIO_NUM_13
+#define LIGHT_ADC_CHANNEL   ADC_CHANNEL_6   /* GPIO34 */
 
 
 /* ================================================================
@@ -78,8 +82,14 @@ static void sensor_task(void *pvParameters)
 
     /* --- 主循环 --- */
     while (1) {
-        /* DHT11 温湿度：读取并写入 HTTP 缓存 */
+        /* DHT11 温湿度 */
         http_server_update_sensor();
+
+        /* 光敏传感器：模拟 + 数字 */
+        int raw     = light_sensor_analog();
+        int percent = light_sensor_to_percent(raw);
+        int bright  = light_sensor_digital();
+        http_server_update_light(percent, raw, bright);
 
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
@@ -155,6 +165,7 @@ void app_main(void)
     ir_sensor_init(IR_SENSOR_GPIO);
     esp_log_level_set("dht11", ESP_LOG_NONE);
     dht11_init(DHT11_GPIO);
+    light_sensor_init(LIGHT_DIGITAL_GPIO, LIGHT_ADC_CHANNEL);
 
     /* 创建框架任务 */
     xTaskCreate(io_task,      "io_task",      4096, NULL, 4, NULL);
